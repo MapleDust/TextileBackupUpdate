@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "net.szum123321.textile_backup.mixin",
+  "compatibilityLevel": "JAVA_16",
+  "mixins": [
+    "DedicatedServerWatchdogMixin",
+    "MinecraftServerSessionAccessor"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

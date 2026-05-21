@@ -1,0 +1,134 @@
+import net.fabricmc.loom.task.prod.ServerProductionRunTask
+
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version+'-'+minecraft_version
+group = project.maven_group
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+	maven { url 'https://jitpack.io' }
+	maven { url "https://maven.shedaniel.me/" }
+	maven { url "https://maven.terraformersmc.com/releases/" }
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"backup" {
+			sourceSet sourceSets.main
+		}
+	}
+
+}
+
+tasks.register("prodServer", ServerProductionRunTask) {
+	// The version of the Fabric Installer to use. This must be specified.
+	installerVersion = "1.1.1"
+
+	// The version of Fabric Loader to use.
+	// Defaults to the version of Fabric Loader that the project is using.
+	loaderVersion = "${loader_version}"
+
+	// The version of Minecraft to use.
+	// Defaults to the version of Minecraft that the project is using.
+	minecraftVersion = "${minecraft_version}"
+
+
+	// The directory to run the game in.
+	runDir = file("run")
+
+	// Specify the Java toolchain to use when running the game.
+	// Defaults to the Java version being used to run Gradle.
+	// See https://docs.gradle.org/current/userguide/toolchains.html#sec:plugins_toolchains
+	javaLauncher = javaToolchains.launcherFor {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	//General config library
+	modApi("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_version}") {
+		exclude(group: "net.fabricmc.fabric-api")
+	}
+
+	//Mod menu
+	modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
+
+	//General compression library
+	include(implementation "org.apache.commons:commons-compress:1.28.0")
+
+	//LZMA support
+	implementation 'org.tukaani:xz:1.9'
+	include "org.tukaani:xz:1.9"
+
+	//Gzip compression, parallel, GITHUB
+	implementation "com.github.shevek:parallelgzip:${project.pgzip_commit_hash}"
+	include "com.github.shevek:parallelgzip:${project.pgzip_commit_hash}"
+
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}
